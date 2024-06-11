@@ -1,0 +1,46 @@
+[tool.poetry]
+name = "GLOBBO"
+version = "0.1.0"
+description = "Task Flow for consume API"
+authors = ["AnaCandidaPereiraQuadros <acandida.quadros@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "3.12.*"
+requests = { version = "^2.28", extras = ["security"] }
+prefect-client = "^2.19.4"
+prefect = "2.19.4"
+
+[tool.poetry.dev-dependencies]
+black = "24.4.2"
+pytest = "^7.4"
+pytest-cov = "^4.1.0"
+isort = "5.12.0"
+
+[tool.pytest.ini_options]
+pythonpath = "."
+
+[tool.isort]
+profile = "black"
+line_length = 88
+extend_skip = ['migrations']
+
+[tool.black]
+line-length = 88
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | \venv
+  | _build
+  | build
+  | dist
+)/
+'''
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
