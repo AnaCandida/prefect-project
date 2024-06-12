@@ -26,7 +26,8 @@ def fetch_data(url: str) -> dict:
         dict: The JSON response from the API.
 
     Raises:
-        requests.exceptions.RequestException: If the request fails.
+        requests.exceptions.HTTPError: If the request fails.
+        requests.exceptions.Timeout: If the request times out.
     """
     try:
         response = requests.get(url,timeout=2)
@@ -54,7 +55,7 @@ def fetch_data(url: str) -> dict:
     retry_delay_seconds=os.environ.get("TASK_RETRY_DELAY"),
     cache_expiration=timedelta(minutes=5),
 )
-def process_data(data: dict) -> list:
+def process_data(data: dict) -> dict:
     """
     Process the fetched data to extract results.
 
@@ -62,10 +63,8 @@ def process_data(data: dict) -> list:
         data (dict): The JSON data fetched from the API.
 
     Returns:
-        list: The list of results from the JSON data.
+        data
 
-    Raises:
-        KeyError: If the 'results' key is not found in the data.
     """
     return data
 
@@ -88,7 +87,7 @@ def generate_filename(
         endpoint (str): The API endpoint.
 
     Returns:
-        str: The generated filename.
+        str: The generated filename based on the endpoint.
     """
 
     parsed_url = urlparse(url)
@@ -109,13 +108,14 @@ def generate_filename(
 )
 def save_data(data: list, filename: str = "data.json"):
     """
-    Save the processed data.
+    Save the processed data into a JSON file.
 
     Args:
         data (list): The processed data to be saved.
 
     Returns:
         None
+
     """
     try:
         with open(filename, "w") as f:
