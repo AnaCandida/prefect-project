@@ -28,9 +28,19 @@ def fetch_data(url: str) -> dict:
     Raises:
         requests.exceptions.RequestException: If the request fails.
     """
-    response = requests.get(url)
-    response.raise_for_status()
-    return response.json()
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.HTTPError as e:
+        logger = get_run_logger()
+        if e.response.status_code == 404:
+            logger.warning(f"{e.response.status_code} - URL not found: {url}")
+        elif e.response.status_code == 500:
+            logger.error(f"{e.response.status_code} - Server error: {url}")
+        else:
+            logger.error(f"{e.response.status_code} -Erro HTTP: {url}")
+        raise
 
 
 @task(
@@ -103,10 +113,19 @@ def save_data(data: list, filename: str = "data.json"):
     Returns:
         None
     """
-    with open(filename, "w") as f:
-        json.dump(data, f, indent=4)
-    logger = get_run_logger()
-    logger.info(f"Data saved to {filename}")
+    try:
+        with open(filename, "w") as f:
+            json.dump(data, f, indent=4)
+        logger = get_run_logger()
+        logger.info(f"Data saved to {filename}")
+    except IOError as e:
+        logger = get_run_logger()
+        logger.error(f"Error saving file: {e}")
+        raise
+    except json.JSONEncodeError as e:
+        logger = get_run_logger()
+        logger.error(f"Error serializing data to JSON: {e}")
+        raise
 
 
 @flow(
@@ -134,7 +153,7 @@ def api_flow(url):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Script para executar o fluxo Prefect com a URL da API como parâmetro."
+        description="Script to run the Prefect flow with the API URL as a parameter."
     )
     parser.add_argument("--url", default=os.environ.get("API_URL"), help="URL da API")
     args = parser.parse_args()
