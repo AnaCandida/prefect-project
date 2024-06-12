@@ -45,7 +45,7 @@ def process_data(data: dict) -> list:
     Raises:
         KeyError: If the 'results' key is not found in the data.
     """
-    return data["results"]
+    return data
 
 
 @task(
