@@ -4,13 +4,15 @@ from datetime import timedelta
 import json
 import argparse
 from urllib.parse import urlparse
+from prefect import flow, get_run_logger
+import os
 
 
 @task(
     name="Fetch Data",
     description="Fetch data from the specified API endpoint, with retries on failure.",
-    retries=3,
-    retry_delay_seconds=10,
+    retries=os.environ.get("TASK_RETRIES"),
+    retry_delay_seconds=os.environ.get("TASK_RETRY_DELAY"),
     cache_expiration=timedelta(minutes=5),
 )
 def fetch_data(url: str) -> dict:
@@ -31,7 +33,13 @@ def fetch_data(url: str) -> dict:
     return response.json()
 
 
-@task(name="Process Data", description="Process the fetched data to extract results.")
+@task(
+    name="Process Data",
+    description="Process the fetched data to extract results.",
+    retries=os.environ.get("TASK_RETRIES"),
+    retry_delay_seconds=os.environ.get("TASK_RETRY_DELAY"),
+    cache_expiration=timedelta(minutes=5),
+)
 def process_data(data: dict) -> list:
     """
     Process the fetched data to extract results.
@@ -52,6 +60,9 @@ def process_data(data: dict) -> list:
     name="Generate Filename",
     description="Generate a sequential filename based on the endpoint.",
     tags=["filename", "generate"],
+    retries=os.environ.get("TASK_RETRIES"),
+    retry_delay_seconds=os.environ.get("TASK_RETRY_DELAY"),
+    cache_expiration=timedelta(minutes=5),
 )
 def generate_filename(
     url: str,
@@ -74,7 +85,14 @@ def generate_filename(
     return filename
 
 
-@task(name="Save Data", description="Save the processed data.", tags=["save", "data"])
+@task(
+    name="Save Data",
+    description="Save the processed data.",
+    tags=["save", "data"],
+    retries=os.environ.get("TASK_RETRIES"),
+    retry_delay_seconds=os.environ.get("TASK_RETRY_DELAY"),
+    cache_expiration=timedelta(minutes=5),
+)
 def save_data(data: list, filename: str = "data.json"):
     """
     Save the processed data.
@@ -87,12 +105,15 @@ def save_data(data: list, filename: str = "data.json"):
     """
     with open(filename, "w") as f:
         json.dump(data, f, indent=4)
-    print(f"Data saved to {filename}")
+    logger = get_run_logger()
+    logger.info(f"Data saved to {filename}")
 
 
 @flow(
     name="Rick and Morty Flow",
     description="A flow to fetch, process, and save data from the Rick and Morty API.",
+    retries=os.environ.get("TASK_RETRIES"),
+    retry_delay_seconds=os.environ.get("TASK_RETRY_DELAY"),
 )
 def api_flow(url):
     """
@@ -115,8 +136,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Script para executar o fluxo Prefect com a URL da API como parâmetro."
     )
-    parser.add_argument(
-        "--url", default="https://rickandmortyapi.com/api/character", help="URL da API"
-    )
+    parser.add_argument("--url", default=os.environ.get("API_URL"), help="URL da API")
     args = parser.parse_args()
     api_flow(args.url)
