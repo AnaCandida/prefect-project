@@ -3,6 +3,7 @@ from prefect import flow, task
 from datetime import timedelta
 import json
 import argparse
+from urllib.parse import urlparse
 
 
 @task(
@@ -52,33 +53,25 @@ def process_data(data: dict) -> list:
     description="Generate a sequential filename based on the endpoint.",
     tags=["filename", "generate"],
 )
-def generate_filename(endpoint: str, directory: str = ".") -> str:
+def generate_filename(
+    url: str,
+) -> str:
     """
-    Generate a sequential filename based on the endpoint.
+    Generate a filename based on the endpoint.
 
     Args:
         endpoint (str): The API endpoint.
-        directory (str): The directory to check for existing files.
 
     Returns:
         str: The generated filename.
     """
-    base_name = endpoint.replace("/", "_")
-    files = [
-        f
-        for f in os.listdir(directory)
-        if f.startswith(base_name) and f.endswith(".json")
-    ]
-    if files:
-        numbers = [
-            int(f[len(base_name) + 1 : -5])
-            for f in files
-            if f[len(base_name) + 1 : -5].isdigit()
-        ]
-        next_number = max(numbers) + 1 if numbers else 1
-    else:
-        next_number = 1
-    return f"{base_name}_{next_number}.json"
+
+    parsed_url = urlparse(url)
+    endpoint = parsed_url.path.replace("/api/", "")
+    endpoint = endpoint.replace("/", "_").replace(".", "_").replace(",", "_")
+    filename = endpoint + ".json"
+
+    return filename
 
 
 @task(name="Save Data", description="Save the processed data.", tags=["save", "data"])
