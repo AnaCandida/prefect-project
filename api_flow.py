@@ -29,7 +29,7 @@ def fetch_data(url: str) -> dict:
         requests.exceptions.RequestException: If the request fails.
     """
     try:
-        response = requests.get(url)
+        response = requests.get(url,timeout=2)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.HTTPError as e:
@@ -40,6 +40,10 @@ def fetch_data(url: str) -> dict:
             logger.error(f"{e.response.status_code} - Server error: {url}")
         else:
             logger.error(f"{e.response.status_code} -Erro HTTP: {url}")
+        raise SystemExit(e)
+    except requests.exceptions.Timeout:
+        logger = get_run_logger()
+        logger.error(f"Timeout occurred while fetching data from {url}")
         raise
 
 
